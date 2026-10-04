@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f5f9">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Ev giderleri, faturalar ve taksitler için basit aylık gelir-gider takip uygulaması.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ev Giderleri">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Ev Gider Takip</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+:root{
+  --bg:#f4f5f9;--card:#fff;--ink:#141a28;--mut:#6a7286;--line:#e5e8ef;--chip:#eceef5;--track:#c9cedb;
+  --h:217;--acc:hsl(var(--h) 78% 46%);--acc-d:hsl(var(--h) 78% 36%);--acc-s:hsl(var(--h) 85% 94%);--on-acc:#fff;
+  --inc:#16955c;--exp:#d93f48;--warn:#c9760f;--inc-s:#e3f5ec;--exp-s:#fdebec;--warn-s:#fcf0dc;
+  --sh:0 1px 2px rgba(20,26,40,.05),0 6px 18px rgba(20,26,40,.06);
+  --r:18px;--fs:16px;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+[data-theme=dark]{
+  color-scheme:dark;
+  --bg:#0d1017;--card:#161a24;--ink:#eceff6;--mut:#99a1b4;--line:#262c3a;--chip:#212736;--track:#3b4254;
+  --acc:hsl(var(--h) 85% 67%);--acc-d:hsl(var(--h) 70% 52%);--acc-s:hsl(var(--h) 38% 20%);--on-acc:#0a0d14;
+  --inc:#3ccf8e;--exp:#ff7378;--warn:#f2a54a;--inc-s:#12291f;--exp-s:#2f181b;--warn-s:#2d2212;
+  --sh:0 0 0 1px rgba(255,255,255,.04),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{font-size:var(--fs);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.35;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body.lock{overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+button:focus-visible,.in:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+img{max-width:100%}
+#app{max-width:640px;margin:0 auto;min-height:100dvh}
+.top{position:sticky;top:0;z-index:30;background:var(--bg);padding:calc(env(safe-area-inset-top,0px) + .8rem) 1rem .55rem}
+.trow{display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-height:2.3rem}
+.trow h1{margin:0;font-size:1.7rem;font-weight:800;letter-spacing:-.02em}
+.badge{font-size:.78rem;font-weight:800;padding:.3rem .7rem;border-radius:99px;background:var(--chip);color:var(--mut)}
+.badge.cur{background:var(--acc-s);color:var(--acc)}
+.badge.arc{background:var(--warn-s);color:var(--warn)}
+.pbar{display:grid;grid-template-columns:2.9rem 1fr 5.6rem 2.9rem;gap:.4rem;margin-top:.55rem}
+.pbar.y{grid-template-columns:2.9rem 1fr 2.9rem}
+.ib{height:2.9rem;border-radius:14px;background:var(--card);box-shadow:var(--sh);display:grid;place-items:center;font-size:1.5rem;font-weight:700;line-height:1}
+.sel,.in{width:100%;height:3rem;border-radius:14px;border:1.5px solid var(--line);background:var(--card);padding:0 .9rem;font-size:max(16px,1rem)}
+.pbar .sel{height:2.9rem;font-weight:700;border:0;box-shadow:var(--sh)}
+select.sel,select.in{-webkit-appearance:none;appearance:none;padding-right:2.2rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%238a93a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .8rem center}
+.in:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-s)}
+textarea.in{height:auto;padding:.7rem .9rem;min-height:4.4rem;resize:vertical}
+.main{padding:.4rem 1rem calc(6.6rem + env(safe-area-inset-bottom,0px))}
+.card,.sec,.list{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:.9rem}
+.card{padding:1rem}
+.list{overflow:hidden}
+/* hero */
+.hero{color:#fff;background:linear-gradient(135deg,hsl(var(--h) 78% 42%),hsl(calc(var(--h) + 28) 70% 28%));border-radius:22px;padding:1.15rem;margin-bottom:.9rem;position:relative;overflow:hidden;box-shadow:0 10px 28px hsl(var(--h) 70% 30% / .32)}
+.hero::after{content:"";position:absolute;right:-34px;top:-34px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.09)}
+.hero small{opacity:.82;font-weight:600}
+.hero .big{font-size:2.05rem;font-weight:800;letter-spacing:-.02em;margin:.05rem 0 .85rem;position:relative}
+.hero .two{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;position:relative}
+.hero .two div{background:rgba(255,255,255,.14);border-radius:14px;padding:.6rem .75rem}
+.hero .two b{display:block;font-size:1.05rem}
+.prog{height:8px;border-radius:99px;background:rgba(255,255,255,.22);overflow:hidden;margin-top:.95rem;position:relative}
+.prog i{display:block;height:100%;background:#fff;border-radius:99px}
+.hero-f{display:flex;justify-content:space-between;gap:.5rem;font-size:.8rem;font-weight:600;margin-top:.45rem;opacity:.9;position:relative}
+.alert{display:flex;width:100%;gap:.6rem;align-items:center;background:var(--exp-s);color:var(--exp);border-radius:16px;padding:.85rem 1rem;font-weight:700;margin-bottom:.9rem;font-size:.92rem}
+.chips{display:flex;gap:.5rem;overflow-x:auto;padding:.1rem .1rem .8rem;scrollbar-width:none;margin:0 -.1rem}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:.55rem 1rem;border-radius:99px;background:var(--card);box-shadow:var(--sh);font-weight:700;font-size:.92rem}
+.chip.on{background:var(--acc);color:var(--on-acc)}
+.seg{display:flex;background:var(--chip);border-radius:14px;padding:3px;gap:2px}
+.seg button{flex:1;padding:.6rem .3rem;border-radius:11px;text-align:center;font-weight:700;font-size:.92rem;color:var(--mut)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+/* folds */
+.fold{display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .26s ease,visibility 0s .26s}
+.open>.fold{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .26s ease,visibility 0s}
+.fold-in{overflow:hidden;min-height:0}
+.pad{padding:0 1rem 1rem}
+.sec{overflow:hidden}
+.sec-h{display:flex;align-items:center;gap:.6rem;width:100%;padding:1rem;font-weight:800;font-size:1.05rem;min-height:3.4rem}
+.sec-t{flex:1}
+.cnt{background:var(--chip);color:var(--mut);border-radius:99px;font-size:.78rem;padding:.15rem .6rem;font-weight:800}
+.chev{flex:none;color:var(--mut);transition:transform .25s}
+.open>.sec-h .chev,.open>.rec-h .chev,.open>.g-h .chev{transform:rotate(180deg)}
+/* items */
+.ico{width:2.6rem;height:2.6rem;border-radius:14px;display:grid;place-items:center;font-size:1.3rem;background:var(--acc-s);flex:none}
+.ico.gelir{background:var(--inc-s)}
+.pill{font-style:normal;font-size:.72rem;font-weight:800;padding:.18rem .55rem;border-radius:99px;display:inline-block;white-space:nowrap}
+.pill.paid{background:var(--inc-s);color:var(--inc)}
+.pill.due{background:var(--warn-s);color:var(--warn)}
+.pill.overdue{background:var(--exp-s);color:var(--exp)}
+.pos{color:var(--inc)}.neg{color:var(--exp)}
+.rec+.rec,.grp+.rec{border-top:1px solid var(--line)}
+.rec-h,.g-h{display:flex;align-items:center;gap:.75rem;width:100%;padding:.85rem 1rem}
+.rec-t{flex:1;min-width:0}
+.rec-t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-t small,.mut{color:var(--mut);font-size:.8rem}
+.rec-a{display:flex;flex-direction:column;gap:.25rem;align-items:flex-end;flex:none}
+.rec-a b{white-space:nowrap}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.4rem 1rem;font-size:.9rem;margin:0 0 .85rem}
+.dl dt{color:var(--mut)}.dl dd{margin:0;text-align:right;font-weight:600;word-break:break-word}
+.acts{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.thumb{width:88px;height:88px;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:zoom-in;display:block}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-height:2.9rem;padding:0 1.1rem;border-radius:14px;font-weight:800;background:var(--chip);text-align:center}
+.btn.pri{background:var(--acc);color:var(--on-acc)}
+.btn.dng{background:var(--exp-s);color:var(--exp)}
+.btn.sm{min-height:2.3rem;padding:0 .85rem;font-size:.86rem;border-radius:11px}
+.btn.blk{width:100%}
+.grp{padding:.5rem 1rem;background:var(--chip);font-size:.8rem;font-weight:800;color:var(--mut);display:flex;justify-content:space-between;gap:.5rem}
+.listhead{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin:.1rem 0 .7rem;flex-wrap:wrap}
+.listhead .acts{gap:.4rem}
+.sumline{font-size:.85rem;color:var(--mut);font-weight:600}
+/* rows */
+.row{display:flex;align-items:center;gap:.75rem;width:100%;padding:.7rem 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .rec-t b{font-size:.95rem}
+.gauge+.gauge{border-top:1px solid var(--line)}
+.ring{width:3.1rem;height:3.1rem;position:relative;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:.72rem;font-weight:800}
+.g-b{padding:0 1rem .5rem 1rem}
+.mini{display:flex;align-items:center;gap:.6rem;padding:.6rem 0;border-top:1px dashed var(--line);font-size:.9rem}
+.mini .rec-t{flex:1}
+.up{color:var(--exp)}.down{color:var(--inc)}
+.dlt{font-size:.75rem;font-weight:800;margin-left:.3rem}
+.empty{text-align:center;color:var(--mut);padding:1.4rem .5rem}
+.empty .e{font-size:2rem;display:block;margin-bottom:.3rem}
+/* charts */
+.chart{display:flex;gap:.25rem;align-items:flex-end}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.3rem;justify-content:flex-end;min-width:0}
+.bars{display:flex;gap:2px;align-items:flex-end;height:100px;justify-content:center;width:100%}
+.b{display:block;width:44%;max-width:15px;border-radius:5px 5px 2px 2px;min-height:2px}
+.b.inc{background:var(--inc)}.b.exp{background:var(--exp)}
+.col span{font-size:.68rem;color:var(--mut);font-weight:700}
+.col:not(.sel) .b{opacity:.5}
+.col.sel span{color:var(--ink)}
+.cap{display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;font-size:.85rem;font-weight:700;margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--line)}
+.lg{display:inline-flex;align-items:center;gap:.3rem}
+.lg i{width:.7rem;height:.7rem;border-radius:3px;display:inline-block}
+.cb{margin-bottom:.85rem}
+.cb-top{display:flex;justify-content:space-between;gap:.5rem;font-size:.9rem;font-weight:700;margin-bottom:.3rem}
+.cb-bar{height:9px;border-radius:99px;background:var(--chip);overflow:hidden}
+.cb-bar i{display:block;height:100%;border-radius:99px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:.9rem}
+.st{background:var(--card);border-radius:16px;padding:.85rem;box-shadow:var(--sh);min-width:0}
+.st small{color:var(--mut);font-weight:700;font-size:.78rem}
+.st b{display:block;font-size:1.12rem;margin-top:.15rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis}
+.st em{font-style:normal;font-size:.78rem;font-weight:700}
+table.t{width:100%;border-collapse:collapse;font-size:.85rem}
+.t th{text-align:right;color:var(--mut);font-weight:700;padding:.4rem .3rem}
+.t th:first-child,.t td:first-child{text-align:left}
+.t td{padding:.5rem .3rem;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.tw{overflow-x:auto}
+/* forms */
+.fld{margin-bottom:.9rem}
+.fld label,.set-lab{display:block;font-size:.82rem;font-weight:700;color:var(--mut);margin-bottom:.35rem}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 .7rem}
+.fgrid .span2{grid-column:1/3}
+.sw{display:flex;align-items:center;justify-content:space-between;padding:.75rem .9rem;border:1.5px solid var(--line);border-radius:14px;font-weight:700;gap:.8rem}
+.sw input{-webkit-appearance:none;appearance:none;flex:none;width:3rem;height:1.75rem;border-radius:99px;background:var(--track);position:relative;transition:.2s;border:0;margin:0}
+.sw input::after{content:"";position:absolute;left:3px;top:3px;width:calc(1.75rem - 6px);height:calc(1.75rem - 6px);border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked{background:var(--acc)}
+.sw input:checked::after{transform:translateX(1.25rem)}
+.err{color:var(--exp);font-weight:700;font-size:.88rem;margin:.2rem 0 .8rem;min-height:1.2em}
+.photo-row{display:flex;gap:.8rem;align-items:center}
+.ph-x{font-size:.85rem;color:var(--exp);font-weight:700;display:block;margin-top:.3rem}
+/* settings */
+.swatches{display:flex;gap:.7rem;flex-wrap:wrap}
+.sw-c{width:2.7rem;height:2.7rem;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 2px var(--line);background:hsl(var(--hh) 78% 48%)}
+.sw-c.on{box-shadow:0 0 0 3px var(--ink)}
+.fonts{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.fbtn{padding:.8rem .5rem;border-radius:14px;border:2px solid var(--line);text-align:center;font-size:1.05rem}
+.fbtn small{display:block;font-family:var(--font);font-size:.72rem;color:var(--mut);margin-top:.1rem}
+.fbtn.on{border-color:var(--acc);background:var(--acc-s)}
+.tags{display:flex;flex-wrap:wrap;gap:.45rem}
+.tag{padding:.4rem .7rem;border-radius:99px;background:var(--chip);font-size:.85rem;font-weight:600;display:inline-flex;align-items:center;gap:.3rem}
+.tag button{color:var(--exp);font-weight:800;padding:0 .2rem}
+.setbtns{display:grid;gap:.6rem}
+.about{text-align:center;padding:.3rem 0}
+.about .logo{width:4.2rem;height:4.2rem;border-radius:20px;margin:.2rem auto .6rem}
+.about p{margin:.2rem 0}
+.srch{margin-bottom:.9rem}
+/* nav */
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:640px;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding:.4rem .4rem calc(.45rem + env(safe-area-inset-bottom,0px))}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.35rem 0;border-radius:14px;color:var(--mut);font-size:.88rem;font-weight:800;text-align:center}
+.nav svg{width:1.7rem;height:1.7rem;padding:.2rem .85rem;box-sizing:content-box;border-radius:99px;transition:background .2s}
+.nav button.on{color:var(--acc)}
+.nav button.on svg{background:var(--acc-s)}
+.fab{position:fixed;z-index:35;right:max(1rem,calc((100vw - 640px)/2 + 1rem));bottom:calc(5.6rem + env(safe-area-inset-bottom,0px));width:3.7rem;height:3.7rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-size:2rem;font-weight:400;box-shadow:0 8px 22px hsl(var(--h) 70% 30% / .45);line-height:1}
+.fab[hidden]{display:none}
+/* overlays */
+.ov{position:fixed;inset:0;z-index:100;background:rgba(8,10,16,.55);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.ov.c{align-items:center;padding:1rem}
+.sheet{width:100%;max-width:640px;max-height:calc(100dvh - env(safe-area-inset-top,0px) - .6rem);overflow:auto;background:var(--bg);border-radius:26px 26px 0 0;padding:.6rem 1rem calc(1.2rem + env(safe-area-inset-bottom,0px));animation:up .28s cubic-bezier(.2,.8,.2,1);overscroll-behavior:contain}
+.grab{width:2.6rem;height:5px;border-radius:9px;background:var(--track);margin:0 auto .7rem}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem}
+.sheet-h h2{margin:0;font-size:1.3rem}
+.x{width:2.4rem;height:2.4rem;border-radius:50%;background:var(--chip);display:grid;place-items:center;font-weight:800}
+.dlg{background:var(--card);border-radius:22px;padding:1.2rem;max-width:420px;width:100%;animation:pop .2s}
+.dlg h3{margin:0 0 .4rem;font-size:1.15rem}
+.dlg p{margin:0 0 1rem;color:var(--mut);line-height:1.45}
+.dlg-b{display:flex;flex-direction:column;gap:.5rem}
+.photo-ov{background:rgba(0,0,0,.88);align-items:center;padding:1rem}
+.photo-ov img{max-height:88dvh;border-radius:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(5.9rem + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:.75rem 1rem;border-radius:14px;z-index:200;font-weight:600;display:flex;gap:.9rem;align-items:center;max-width:92%;font-size:.92rem;animation:pop .2s}
+.toast button{color:var(--acc);font-weight:800;white-space:nowrap}
+[data-theme=light] .toast button{color:hsl(var(--h) 90% 75%)}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+@keyframes pop{from{transform:scale(.96);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:360px){.hero .big{font-size:1.75rem}.trow h1{font-size:1.5rem}}
+</style>
+<script>
+/* Tercihler (sayfa çizilmeden önce uygulanır) */
+const PK='egt_prefs_v1';
+const FONTS={
+  sistem:{n:'Sistem',v:'system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif'},
+  nunito:{n:'Yuvarlak',g:'Nunito:wght@400;600;700;800',v:'"Nunito",ui-rounded,"SF Pro Rounded",system-ui,sans-serif'},
+  poppins:{n:'Modern',g:'Poppins:wght@400;500;600;700;800',v:'"Poppins","Segoe UI",system-ui,sans-serif'},
+  merri:{n:'Klasik',g:'Merriweather:wght@400;700;900',v:'"Merriweather",Georgia,"Times New Roman",serif'},
+  grotesk:{n:'Geometrik',g:'Space+Grotesk:wght@400;500;600;700',v:'"Space Grotesk",system-ui,sans-serif'},
+  mono:{n:'Daktilo',g:'JetBrains+Mono:wght@400;600;800',v:'"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace'}
+};
+let P={mode:'auto',hue:217,font:'sistem',size:'m'};
+try{Object.assign(P,JSON.parse(localStorage.getItem(PK)||'{}'))}catch(e){}
+function loadFont(k){const f=FONTS[k];if(!f||!f.g||document.getElementById('gf-'+k))return;const l=document.createElement('link');l.id='gf-'+k;l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+f.g+'&display=swap';document.head.appendChild(l)}
+function applyPrefs(){
+  const R=document.documentElement;
+  const dark=P.mode==='dark'||(P.mode==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  R.dataset.theme=dark?'dark':'light';
+  R.style.setProperty('--h',P.hue);
+  R.style.setProperty('--fs',({s:'15px',m:'16px',l:'18px'})[P.size]||'16px');
+  R.style.setProperty('--font',(FONTS[P.font]||FONTS.sistem).v);
+  loadFont(P.font);
+  const m=document.querySelector('meta[name=theme-color]');
+  if(m)m.setAttribute('content',getComputedStyle(R).getPropertyValue('--bg').trim()||'#f4f5f9');
+}
+applyPrefs();
+</script>
+</head>
+<body>
+<div id="app">
+  <header class="top" id="top"></header>
+  <main class="main" id="view"></main>
+</div>
+<button class="fab" id="fab" data-act="add" aria-label="Yeni kayıt ekle">+</button>
+<nav class="nav" id="nav" aria-label="Ana menü">
+  <button data-act="tab" data-tab="home" aria-label="Ana Sayfa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Ana Sayfa</button>
+  <button data-act="tab" data-tab="fat" aria-label="Faturalar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Faturalar</button>
+  <button data-act="tab" data-tab="sum" aria-label="Özet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20v-7M12 20V5M19 20v-10"/></svg>Özet</button>
+  <button data-act="tab" data-tab="set" aria-label="Ayarlar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Ayarlar</button>
+</nav>
+<input type="file" id="impfile" accept=".json,application/json" hidden>
+
+<script>
+(()=>{
+'use strict';
+/* ================= Yardımcılar ================= */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const MONTHS=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const MS=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const nowYM=()=>todayStr().slice(0,7);
+const daysIn=(y,m)=>new Date(y,m,0).getDate();
+const addMonths=(ym,n)=>{let[y,m]=ym.split('-').map(Number);m=m-1+n;y+=Math.floor(m/12);m=((m%12)+12)%12;return y+'-'+pad(m+1)};
+const monthDiff=(a,b)=>{const[ay,am]=a.split('-').map(Number),[by,bm]=b.split('-').map(Number);return(by-ay)*12+(bm-am)};
+const shiftDate=(d,n)=>{const[y,m,dd]=d.split('-').map(Number);const ym=addMonths(y+'-'+pad(m),n);const[ny,nm]=ym.split('-').map(Number);return ym+'-'+pad(Math.min(dd,daysIn(ny,nm)))};
+const fmtDate=s=>{if(!s)return'';const[y,m,d]=s.split('-');return(+d)+' '+MS[m-1]+' '+y};
+const monthName=ym=>{const[y,m]=ym.split('-');return MONTHS[m-1]+' '+y};
+const fmtMoney=n=>{n=Number(n)||0;return(n<0?'-':'')+'₺'+Math.abs(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const round2=n=>Math.round(n*100)/100;
+const sum=(a,f)=>a.reduce((s,x)=>s+(f?f(x):x.amount),0);
+function parseAmount(s){s=String(s).trim().replace(/[₺\s]/g,'');if(!s)return NaN;const c=s.lastIndexOf(','),d=s.lastIndexOf('.');
+  if(c>-1&&d>-1){s=c>d?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'')}
+  else if(c>-1){s=s.replace(/\./g,'').replace(',','.')}
+  else if(d>-1&&(s.match(/\./g)||[]).length>1){s=s.replace(/\./g,'')}
+  return Number(s)}
+const CHEV='<svg class="chev" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+/* ================= Kategoriler ================= */
+const DEF_CATS=[
+ {id:'su',name:'Su',icon:'💧',type:'gider',group:'fatura',unit:'m³',meter:1},
+ {id:'elektrik',name:'Elektrik',icon:'⚡',type:'gider',group:'fatura',unit:'kWh',meter:1},
+ {id:'dogalgaz',name:'Doğalgaz',icon:'🔥',type:'gider',group:'fatura',unit:'m³',meter:1},
+ {id:'telefon',name:'Telefon',icon:'📱',type:'gider',group:'fatura'},
+ {id:'internet',name:'İnternet',icon:'🌐',type:'gider',group:'fatura'},
+ {id:'kira',name:'Kira',icon:'🏠',type:'gider',group:'diger'},
+ {id:'aidat',name:'Aidat',icon:'🏢',type:'gider',group:'diger'},
+ {id:'taksit',name:'Taksit',icon:'💳',type:'gider',group:'taksit'},
+ {id:'kredi',name:'Kredi',icon:'🏦',type:'gider',group:'taksit'},
+ {id:'market',name:'Market',icon:'🛒',type:'gider',group:'diger'},
+ {id:'ulasim',name:'Ulaşım',icon:'🚌',type:'gider',group:'diger'},
+ {id:'saglik',name:'Sağlık',icon:'💊',type:'gider',group:'diger'},
+ {id:'egitim',name:'Eğitim',icon:'🎓',type:'gider',group:'diger'},
+ {id:'diger-g',name:'Diğer gider',icon:'🧾',type:'gider',group:'diger'},
+ {id:'maas',name:'Maaş',icon:'💼',type:'gelir',group:'gelir'},
+ {id:'ek-gelir',name:'Ek gelir',icon:'➕',type:'gelir',group:'gelir'},
+ {id:'kira-gelir',name:'Kira geliri',icon:'🏘️',type:'gelir',group:'gelir'},
+ {id:'diger-i',name:'Diğer gelir',icon:'💰',type:'gelir',group:'gelir'}
+];
+const GROUPS={all:'Tümü',fatura:'Faturalar',taksit:'Taksitler',diger:'Diğer'};
+const PALETTE=['#4f8cff','#2fbf8f','#ff9f43','#ef5b7b','#9b6bff','#26c6da','#e8b923','#8d99ae','#ff7a59','#5cc15f'];
+
+/* ================= Veri deposu ================= */
+let S={records:[],cats:[],meta:{}};
+const allCats=()=>DEF_CATS.concat(S.cats);
+const catOf=id=>allCats().find(c=>c.id===id)||{id,name:'Silinmiş kategori',icon:'🧾',type:'gider',group:'diger'};
+const catColor=id=>PALETTE[Math.max(0,allCats().findIndex(c=>c.id===id))%PALETTE.length];
+const DBN='ev-gider-takip',STORE='kv',LSK='egt_state_v1';
+let useIDB=typeof indexedDB!=='undefined';
+const idbOpen=()=>new Promise((res,rej)=>{const r=indexedDB.open(DBN,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function dbGet(k){const db=await idbOpen();return new Promise((res,rej)=>{const q=db.transaction(STORE).objectStore(STORE).get(k);q.onsuccess=()=>{res(q.result);db.close()};q.onerror=()=>rej(q.error)})}
+async function dbSet(k,v){const db=await idbOpen();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=()=>{db.close();res()};tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error)})}
+async function loadState(){
+  let d=null;
+  if(useIDB){try{d=await dbGet('state')}catch(e){useIDB=false}}
+  if(!d){try{const t=localStorage.getItem(LSK);if(t)d=JSON.parse(t)}catch(e){}}
+  if(d&&Array.isArray(d.records)){S={records:d.records,cats:Array.isArray(d.cats)?d.cats:[],meta:d.meta||{}}}
+}
+let saveT=null,saving=Promise.resolve();
+function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,120)}
+function saveNow(){
+  clearTimeout(saveT);
+  const snap=S;
+  saving=saving.then(async()=>{
+    try{
+      if(useIDB){await dbSet('state',snap)}
+      else{localStorage.setItem(LSK,JSON.stringify(snap))}
+    }catch(e){
+      if(useIDB){useIDB=false;try{localStorage.setItem(LSK,JSON.stringify(snap));return}catch(_){}}
+      toast('Kayıt başarısız: depolama alanı dolu olabilir. JSON yedeği alın.')
+    }
+  });
+  return saving;
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});
+window.addEventListener('pagehide',()=>saveNow());
+function savePrefs(){try{localStorage.setItem(PK,JSON.stringify(P))}catch(e){}}
+
+/* ================= Arayüz durumu ================= */
+const OPENK='egt_open_v1';
+const UI={tab:'home',ym:nowYM(),hgroup:'all',
+  f:{q:'',scope:'month',type:'all',cat:'all',status:'all',sort:'dateDesc',limit:60},
+  sum:{mode:'month',cat:'all'},archYear:'all',
+  open:{'h-gauge':1,'h-due':1,'h-last':1,'h-trend':0,'f-filter':0,'s-cat':1,'s-status':1,'s-trend':0,'s-top':0,'s-table':0,'s-arch':0,'st-view':1,'st-cat':0,'st-data':0,'st-about':0},
+  recOpen:new Set(),gOpen:new Set()};
+try{Object.assign(UI.open,JSON.parse(localStorage.getItem(OPENK)||'{}'))}catch(e){}
+const saveOpen=()=>{try{localStorage.setItem(OPENK,JSON.stringify(UI.open))}catch(e){}};
+
+/* ================= Hesaplamalar ================= */
+const inMonth=ym=>S.records.filter(r=>r.date.startsWith(ym));
+function status(r){const k=r.paid?'paid':(r.date<todayStr()?'overdue':'due');
+  const L=r.type==='gelir'?{paid:'Alındı',due:'Bekleniyor',overdue:'Bekleniyor'}:{paid:'Ödendi',due:'Bekliyor',overdue:'Gecikmiş'};
+  return{k:r.type==='gelir'&&k==='overdue'?'due':k,label:L[k]}}
+function stats(rs){let inc=0,exp=0,paidE=0,unpaidE=0,nUnpaid=0;
+  for(const r of rs){if(r.type==='gelir')inc+=r.amount;else{exp+=r.amount;if(r.paid)paidE+=r.amount;else{unpaidE+=r.amount;nUnpaid++}}}
+  return{inc,exp,net:inc-exp,paidE,unpaidE,nUnpaid,n:rs.length}}
+function consumption(r){if(r.endeks==null)return null;
+  const prev=S.records.filter(x=>x.cat===r.cat&&x.endeks!=null&&x.id!==r.id&&(x.date<r.date||(x.date===r.date&&x.id<r.id))).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  if(!prev)return null;const d=r.endeks-prev.endeks;return d>=0?round2(d):null}
+function dueText(r){const a=new Date(r.date+'T00:00:00'),b=new Date(todayStr()+'T00:00:00');const d=Math.round((a-b)/864e5);
+  return d===0?'Bugün':d>0?d+' gün kaldı':Math.abs(d)+' gün gecikti'}
+const pctDelta=(a,b)=>b?((a-b)/b*100):null;
+const deltaHtml=(d,invert)=>{if(d==null||!isFinite(d))return'';const up=d>0;if(Math.abs(d)<.5)return'<span class="dlt mut">≈ aynı</span>';return`<span class="dlt ${up?'up':'down'}">${up?'▲':'▼'} %${Math.abs(Math.round(d))}</span>`};
+
+/* ================= Katmanlar (diyalog / sayfa) ================= */
+const ovStack=[];let ignorePop=0;
+function pushOv(el,onClose){document.body.appendChild(el);document.body.classList.add('lock');let pushed=false;try{history.pushState({ov:1},'');pushed=true}catch(e){}ovStack.push({el,onClose,pushed})}
+function popOv(fromPop){const o=ovStack.pop();if(!o)return;o.el.remove();if(!ovStack.length)document.body.classList.remove('lock');
+  if(!fromPop&&o.pushed){try{ignorePop++;history.back()}catch(e){ignorePop--}}
+  if(o.onClose)o.onClose()}
+window.addEventListener('popstate',()=>{if(ignorePop){ignorePop--;return}if(ovStack.length)popOv(true)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ovStack.length)popOv(false)});
+function dialog({title,body,buttons}){return new Promise(res=>{
+  const el=document.createElement('div');el.className='ov c';
+  el.innerHTML=`<div class="dlg" role="dialog" aria-modal="true"><h3>${esc(title)}</h3><p>${body||''}</p><div class="dlg-b">${buttons.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}">${esc(b.label)}</button>`).join('')}</div></div>`;
+  let done=false;const finish=v=>{if(done)return;done=true;res(v)};
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b){finish(buttons[+b.dataset.i].v);popOv(false)}else if(e.target===el){popOv(false)}});
+  pushOv(el,()=>finish(null))})}
+let toastT;
+function toast(msg,act){$('.toast')&&$('.toast').remove();const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');
+  t.innerHTML=`<span>${esc(msg)}</span>${act?`<button>${esc(act.label)}</button>`:''}`;
+  if(act)t.querySelector('button').onclick=()=>{act.fn();t.remove()};
+  document.body.appendChild(t);clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),act?6000:2800)}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},5000)}
+
+/* ================= Şablon parçaları ================= */
+function sec(key,title,inner,o={}){const open=UI.open[key];
+  return`<section class="sec foldable ${open?'open':''}" data-kw="${esc((o.kw||title).toLocaleLowerCase('tr'))}"><button class="sec-h" data-act="toggle" data-kind="sec" data-key="${key}" aria-expanded="${!!open}"><span class="sec-t">${o.icon?o.icon+' ':''}${title}</span>${o.badge!=null&&o.badge!==''?`<span class="cnt">${o.badge}</span>`:''}${CHEV}</button><div class="fold"><div class="fold-in"><div class="pad">${inner}</div></div></div></section>`}
+const empty=(e,t)=>`<div class="empty"><span class="e">${e}</span>${t}</div>`;
+function ringSvg(pct,color){const c=2*Math.PI*18;return`<svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--chip)" stroke-width="5"/><circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(c*Math.min(pct,100)/100).toFixed(1)} ${c.toFixed(1)}"/></svg>`}
+function rowHtml(r,o={}){const c=catOf(r.cat),st=status(r);
+  const sub=o.paidInfo?'Ödendi: '+fmtDate(r.paidAt||r.date):(r.paid?fmtDate(r.date):fmtDate(r.date)+' · '+dueText(r));
+  return`<div class="row" data-act="edit" data-id="${r.id}" role="button" tabindex="0"><span class="ico ${r.type}">${c.icon}</span><span class="rec-t"><b>${esc(r.title||c.name)}</b><small>${esc(sub)}${r.inst?' · '+r.inst.k+'/'+r.inst.n+'. taksit':''}</small></span><span class="rec-a"><b>${fmtMoney(r.amount)}</b>${o.pay&&!r.paid?`<button class="btn sm pri" data-act="pay" data-id="${r.id}">Ödendi ✓</button>`:`<i class="pill ${st.k}">${st.label}</i>`}</span></div>`}
+function recCard(r){const c=catOf(r.cat),st=status(r),open=UI.recOpen.has(r.id),title=r.title||c.name,cons=consumption(r);
+  const sub=[c.name!==title?c.name:'',fmtDate(r.date),r.inst?r.inst.k+'/'+r.inst.n+'. taksit':''].filter(Boolean).join(' · ');
+  const d=[['Kategori',c.icon+' '+esc(c.name)],['Tarih',fmtDate(r.date)]];
+  if(r.paid&&r.paidAt)d.push([r.type==='gelir'?'Alınma tarihi':'Ödeme tarihi',fmtDate(r.paidAt)]);
+  if(r.endeks!=null)d.push(['Sayaç endeksi',String(r.endeks).replace('.',',')+(c.unit?' '+c.unit:'')]);
+  if(cons!=null)d.push(['Tüketim',String(cons).replace('.',',')+' '+(c.unit||'')]);
+  if(r.inst){const left=S.records.filter(x=>x.inst&&x.inst.gid===r.inst.gid&&!x.paid).length;d.push(['Taksit',r.inst.k+' / '+r.inst.n+(left?' · '+left+' ödenmemiş':'')])}
+  if(r.note)d.push(['Not',esc(r.note)]);
+  return`<article class="rec foldable ${open?'open':''}"><button class="rec-h" data-act="toggle" data-kind="rec" data-key="${r.id}" aria-expanded="${open}"><span class="ico ${r.type}">${c.icon}</span><span class="rec-t"><b>${esc(title)}</b><small>${esc(sub)}</small></span><span class="rec-a"><b class="${r.type==='gelir'?'pos':'neg'}">${r.type==='gelir'?'+':'−'}${fmtMoney(r.amount)}</b><i class="pill ${st.k}">${st.label}</i></span></button>
+  <div class="fold"><div class="fold-in"><div class="pad"><dl class="dl">${d.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('')}</dl>
+  ${r.photo?`<img class="thumb" src="${r.photo}" alt="Fotoğraf" data-act="photo" data-id="${r.id}" style="margin-bottom:.85rem">`:''}
+  <div class="acts"><button class="btn sm ${r.paid?'':'pri'}" data-act="pay" data-id="${r.id}">${r.paid?(r.type==='gelir'?'Beklemeye al':'Ödenmedi yap'):(r.type==='gelir'?'Alındı ✓':'Ödendi ✓')}</button><button class="btn sm" data-act="edit" data-id="${r.id}">Düzenle</button><button class="btn sm dng" data-act="del" data-id="${r.id}">Sil</button></div></div></div></div></article>`}
+function barChart(list,sel,capId){const max=Math.max(1,...list.map(x=>Math.max(x.inc,x.exp)));
+  return`<div class="chart">${list.map(x=>`<div class="col ${x.ym===sel?'sel':''}" data-act="chart-sel" data-ym="${x.ym}" data-inc="${x.inc}" data-exp="${x.exp}" role="button" tabindex="0" aria-label="${monthName(x.ym)}"><div class="bars"><i class="b inc" style="height:${Math.max(2,Math.round(x.inc/max*100))}px"></i><i class="b exp" style="height:${Math.max(2,Math.round(x.exp/max*100))}px"></i></div><span>${MS[+x.ym.slice(5)-1]}</span></div>`).join('')}</div>
+  <div class="cap" id="${capId}"></div>`}
+function setCap(id,ym,inc,exp){const el=document.getElementById(id);if(!el)return;el.innerHTML=`<span>${monthName(ym)}</span><span class="lg"><i style="background:var(--inc)"></i>${fmtMoney(inc)}</span><span class="lg"><i style="background:var(--exp)"></i>${fmtMoney(exp)}</span>`}
+function distHtml(rs,type){const g={};rs.filter(r=>r.type===type).forEach(r=>g[r.cat]=(g[r.cat]||0)+r.amount);
+  const arr=Object.entries(g).sort((a,b)=>b[1]-a[1]),tot=arr.reduce((s,x)=>s+x[1],0);
+  if(!arr.length)return empty('📊','Bu dönemde veri yok.');
+  return arr.map(([id,v])=>{const c=catOf(id),p=tot?v/tot*100:0;return`<div class="cb"><div class="cb-top"><span>${c.icon} ${esc(c.name)}</span><span>${fmtMoney(v)} <span class="mut">%${Math.round(p)}</span></span></div><div class="cb-bar"><i style="width:${p.toFixed(1)}%;background:${catColor(id)}"></i></div></div>`}).join('')}
+
+/* ================= Üst başlık ================= */
+function yearList(){const ys=new Set(S.records.map(r=>+r.date.slice(0,4)));const cy=new Date().getFullYear();[cy-1,cy,cy+1,+UI.ym.slice(0,4)].forEach(y=>ys.add(y));return[...ys].sort((a,b)=>a-b)}
+function renderTop(){
+  const T={home:'Ana Sayfa',fat:'Faturalar',sum:'Özet',set:'Ayarlar'};
+  const[y,m]=UI.ym.split('-').map(Number),cur=nowYM();
+  let h=`<div class="trow"><h1>${T[UI.tab]}</h1>`;
+  if(UI.tab!=='set'){
+    const yearly=UI.tab==='sum'&&UI.sum.mode==='year';
+    const bd=yearly?(y===+cur.slice(0,4)?['Bu yıl','cur']:y<+cur.slice(0,4)?['Arşiv','arc']:['Gelecek','']):(UI.ym===cur?['Güncel ay','cur']:UI.ym<cur?['📦 Arşiv','arc']:['Gelecek ay','']);
+    h+=`<span class="badge ${bd[1]}">${bd[0]}</span></div>`;
+    const yo=yearList().map(v=>`<option ${v===y?'selected':''}>${v}</option>`).join('');
+    h+=yearly?`<div class="pbar y"><button class="ib" data-act="prev" aria-label="Önceki yıl">‹</button><select id="py" class="sel" aria-label="Yıl">${yo}</select><button class="ib" data-act="next" aria-label="Sonraki yıl">›</button></div>`
+    :`<div class="pbar"><button class="ib" data-act="prev" aria-label="Önceki ay">‹</button><select id="pm" class="sel" aria-label="Ay">${MONTHS.map((n,i)=>`<option value="${pad(i+1)}" ${i+1===m?'selected':''}>${n}</option>`).join('')}</select><select id="py" class="sel" aria-label="Yıl">${yo}</select><button class="ib" data-act="next" aria-label="Sonraki ay">›</button></div>`;
+  }else h+='</div>';
+  $('#top').innerHTML=h}
+
+/* ================= ANA SAYFA ================= */
+function renderHome(){
+  const ym=UI.ym,[y,m]=ym.split('-').map(Number),all=inMonth(ym),st=stats(all),prev=stats(inMonth(addMonths(ym,-1)));
+  const g=UI.hgroup,inG=r=>r.type==='gider'&&(g==='all'||catOf(r.cat).group===g);
+  const pr=st.exp?Math.round(st.paidE/st.exp*100):0;
+  let h=`<div class="hero"><small>${MONTHS[m-1]} ${y} · Aylık bakiye</small><div class="big">${fmtMoney(st.net)}</div>
+  <div class="two"><div><small>Gelir</small><b>${fmtMoney(st.inc)}</b></div><div><small>Gider</small><b>${fmtMoney(st.exp)}</b></div></div>
+  <div class="prog"><i style="width:${pr}%"></i></div><div class="hero-f"><span>Ödenen %${pr}</span><span>Bekleyen ${fmtMoney(st.unpaidE)}</span></div></div>`;
+  const od=S.records.filter(r=>r.type==='gider'&&!r.paid&&r.date<ym+'-01'&&r.date<todayStr());
+  if(od.length)h+=`<button class="alert" data-act="show-overdue"><span>⚠️</span><span style="flex:1">Önceki aylardan ${od.length} ödenmemiş fatura var (${fmtMoney(sum(od))})</span><span>›</span></button>`;
+  h+=`<div class="chips">${Object.entries(GROUPS).map(([k,v])=>`<button class="chip ${g===k?'on':''}" data-act="hgroup" data-v="${k}">${v}</button>`).join('')}</div>`;
+  /* göstergeler */
+  const rs=all.filter(r=>r.type==='gider'),tot=sum(rs),pm=inMonth(addMonths(ym,-1)).filter(r=>r.type==='gider');
+  let items=allCats().filter(c=>c.type==='gider'&&(g==='all'||c.group===g)).map(c=>{const list=rs.filter(r=>r.cat===c.id).sort((a,b)=>a.date.localeCompare(b.date));return{c,list,amt:sum(list),prev:sum(pm.filter(r=>r.cat===c.id))}})
+    .filter(x=>x.list.length||(x.c.group==='fatura'&&(g==='all'||g==='fatura')));
+  items.sort((a,b)=>(b.list.length?1:0)-(a.list.length?1:0)||b.amt-a.amt);
+  const gh=items.map(x=>{const{c,list}=x,pc=tot?Math.round(x.amt/tot*100):0,pn=list.filter(r=>r.paid).length,open=UI.gOpen.has(c.id);
+    const state=!list.length?'none':pn===list.length?'paid':list.some(r=>status(r).k==='overdue')?'overdue':'due';
+    const col={paid:'var(--inc)',due:'var(--warn)',overdue:'var(--exp)',none:'var(--line)'}[state];
+    const sub=list.length?`${pn}/${list.length} ödendi${deltaHtml(pctDelta(x.amt,x.prev))}`:'Bu ay kayıt yok';
+    return`<div class="gauge foldable ${open?'open':''}"><button class="g-h" data-act="toggle" data-kind="g" data-key="${c.id}" aria-expanded="${open}"><span class="ring">${ringSvg(pc,col)}<span>${list.length?pc+'%':'–'}</span></span><span class="rec-t"><b>${c.icon} ${esc(c.name)}</b><small>${sub}</small></span><span class="rec-a"><b>${list.length?fmtMoney(x.amt):'—'}</b></span>${CHEV}</button>
+    <div class="fold"><div class="fold-in"><div class="g-b">${list.map(r=>{const cs=consumption(r),s=status(r);return`<div class="mini" data-act="edit" data-id="${r.id}" role="button" tabindex="0"><span class="rec-t"><b>${esc(r.title||c.name)}</b><small>${fmtDate(r.date)}${r.inst?' · '+r.inst.k+'/'+r.inst.n+'. taksit':''}${cs!=null?' · '+String(cs).replace('.',',')+' '+(c.unit||''):''}</small></span><b>${fmtMoney(r.amount)}</b><i class="pill ${s.k}">${s.label}</i></div>`}).join('')}
+    <div class="acts" style="padding:.6rem 0 .3rem"><button class="btn sm" data-act="add" data-cat="${c.id}">＋ ${esc(c.name)} ekle</button></div></div></div></div></div>`}).join('');
+  h+=sec('h-gauge','Fatura göstergeleri',gh||empty('🧾','Bu grupta gösterilecek kayıt yok.'),{icon:'🎛️',badge:items.filter(x=>x.list.length).length||''});
+  /* ödenmemiş */
+  const due=all.filter(r=>inG(r)&&!r.paid).sort((a,b)=>a.date.localeCompare(b.date));
+  h+=sec('h-due','Ödenmemiş faturalar',due.length?due.map(r=>rowHtml(r,{pay:true})).join(''):empty('✅','Bu ay bekleyen ödeme yok.'),{icon:'⏳',badge:due.length||'',kw:'ödenmemiş'});
+  /* son ödenen */
+  const last=S.records.filter(r=>inG(r)&&r.paid).sort((a,b)=>(b.paidAt||b.date).localeCompare(a.paidAt||a.date)).slice(0,5);
+  h+=sec('h-last','Son ödenen faturalar',last.length?last.map(r=>rowHtml(r,{paidInfo:true})).join(''):empty('🧾','Henüz ödenmiş kayıt yok.'),{icon:'✔️'});
+  /* trend */
+  const tr=[];for(let i=5;i>=0;i--){const k=addMonths(ym,-i),s=stats(inMonth(k));tr.push({ym:k,inc:s.inc,exp:s.exp})}
+  h+=sec('h-trend','Son 6 ay',barChart(tr,ym,'cap-h'),{icon:'📈',kw:'aylık istatistik son 6 ay'});
+  return h}
+
+/* ================= FATURALAR ================= */
+const SORTS={dateDesc:'Tarih (yeni → eski)',dateAsc:'Tarih (eski → yeni)',amtDesc:'Tutar (çok → az)',amtAsc:'Tutar (az → çok)'};
+function filtered(){const f=UI.f,q=f.q.trim().toLocaleLowerCase('tr'),ym=UI.ym,y=ym.slice(0,4);
+  const list=S.records.filter(r=>{
+    if(f.scope==='month'&&!r.date.startsWith(ym))return false;
+    if(f.scope==='year'&&!r.date.startsWith(y))return false;
+    if(f.type!=='all'&&r.type!==f.type)return false;
+    if(f.cat!=='all'&&r.cat!==f.cat)return false;
+    if(f.status!=='all'){const s=status(r).k;if(f.status==='paid'&&s!=='paid')return false;if(f.status==='unpaid'&&s==='paid')return false;if(f.status==='overdue'&&s!=='overdue')return false}
+    if(q){const c=catOf(r.cat);if(!(r.title+' '+c.name+' '+(r.note||'')+' '+r.amount).toLocaleLowerCase('tr').includes(q))return false}
+    return true});
+  const cmp={dateDesc:(a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id),dateAsc:(a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id),amtDesc:(a,b)=>b.amount-a.amount,amtAsc:(a,b)=>a.amount-b.amount}[f.sort];
+  return list.sort(cmp)}
+function fatList(){const f=UI.f,list=filtered(),st=stats(list);
+  const sumTxt=`${list.length} kayıt · Gider ${fmtMoney(st.exp)} · Gelir ${fmtMoney(st.inc)}`;
+  if(!list.length)return{sum:sumTxt,html:`<div class="list">${empty('🔍',S.records.length?'Bu filtrelerle eşleşen kayıt yok.<br>Dönemi veya filtreleri değiştirin.':'Henüz kayıt yok.<br>Sağ alttaki <b>+</b> ile ilk kaydı ekleyin.')}</div>`};
+  const show=list.slice(0,f.limit),byDate=f.sort.startsWith('date');let out='',last='';
+  for(const r of show){const k=r.date.slice(0,7);if(byDate&&k!==last){last=k;const g=list.filter(x=>x.date.startsWith(k));const gs=stats(g);out+=`<div class="grp"><span>${monthName(k)}</span><span>${fmtMoney(gs.exp)}</span></div>`}out+=recCard(r)}
+  if(list.length>show.length)out+=`<div style="padding:.8rem"><button class="btn blk" data-act="more">Daha fazla göster (${list.length-show.length})</button></div>`;
+  return{sum:sumTxt,html:`<div class="list">${out}</div>`}}
+function renderFat(){
+  const f=UI.f,catOpts='<option value="all">Tüm kategoriler</option>'+['gider','gelir'].map(t=>`<optgroup label="${t==='gider'?'Giderler':'Gelirler'}">${allCats().filter(c=>c.type===t).map(c=>`<option value="${c.id}" ${f.cat===c.id?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
+  const o=(obj,cur)=>Object.entries(obj).map(([k,v])=>`<option value="${k}" ${cur===k?'selected':''}>${v}</option>`).join('');
+  const act=(f.scope!=='month')+(f.type!=='all')+(f.cat!=='all')+(f.status!=='all');
+  const fb=`<div class="fgrid"><div class="fld"><label>Dönem</label><select class="in" data-f="scope">${o({month:'Seçili ay',year:'Seçili yıl',all:'Tüm zamanlar'},f.scope)}</select></div>
+  <div class="fld"><label>Tür</label><select class="in" data-f="type">${o({all:'Tümü',gider:'Gider',gelir:'Gelir'},f.type)}</select></div>
+  <div class="fld"><label>Kategori</label><select class="in" data-f="cat">${catOpts}</select></div>
+  <div class="fld"><label>Durum</label><select class="in" data-f="status">${o({all:'Tümü',paid:'Ödenen / alınan',unpaid:'Ödenmemiş',overdue:'Gecikmiş'},f.status)}</select></div>
+  <div class="fld span2"><label>Sıralama</label><select class="in" data-f="sort">${o(SORTS,f.sort)}</select></div></div>
+  <button class="btn blk" data-act="reset-f">Filtreleri sıfırla</button>`;
+  const L=fatList();
+  return`<div class="fld"><input id="fq" class="in" type="search" placeholder="Ara: başlık, kategori, not, tutar…" value="${esc(f.q)}" autocomplete="off"></div>
+  ${sec('f-filter','Filtreler',fb,{icon:'🎚️',badge:act?act+' aktif':''})}
+  <div class="listhead"><span class="sumline" id="fsum">${L.sum}</span><div class="acts">
+  ${f.scope==='month'?'<button class="btn sm" data-act="copyprev">↻ Önceki aydan kopyala</button>':''}
+  <button class="btn sm" data-act="expand-all">Tümünü aç</button><button class="btn sm" data-act="collapse-all">Kapat</button></div></div>
+  <div id="flist">${L.html}</div>`}
+function updateFatList(){const L=fatList();const a=$('#fsum'),b=$('#flist');if(a)a.textContent=L.sum;if(b)b.innerHTML=L.html}
+
+/* ================= ÖZET ================= */
+function archiveHtml(){const cur=nowYM(),map={};S.records.forEach(r=>{const k=r.date.slice(0,7);if(k<cur)(map[k]=map[k]||[]).push(r)});
+  const years=[...new Set(Object.keys(map).map(k=>k.slice(0,4)))].sort().reverse();
+  let keys=Object.keys(map).sort().reverse();if(UI.archYear!=='all')keys=keys.filter(k=>k.startsWith(UI.archYear));
+  const sel=`<div class="fld"><label>Yıl filtresi</label><select class="in" data-sum="arch"><option value="all">Tüm yıllar</option>${years.map(y=>`<option ${UI.archYear===y?'selected':''}>${y}</option>`).join('')}</select></div>`;
+  const rows=keys.length?`<div class="tw"><table class="t"><tr><th>Ay</th><th>Gelir</th><th>Gider</th><th>Net</th></tr>${keys.map(k=>{const s=stats(map[k]);return`<tr data-act="open-month" data-ym="${k}" style="cursor:pointer"><td><b>${monthName(k)}</b><br><span class="mut">${map[k].length} kayıt</span></td><td class="pos">${fmtMoney(s.inc)}</td><td class="neg">${fmtMoney(s.exp)}</td><td><b>${fmtMoney(s.net)}</b></td></tr>`}).join('')}</table></div><p class="mut" style="margin:.7rem 0 0">Bir aya dokunarak o ayın kayıtlarını açabilirsiniz.</p>`
+    :empty('📦','Geçmiş aylar burada arşivlenir. Yeni ay başladığında önceki ayın verileri otomatik olarak buraya taşınır.');
+  return sel+rows}
+function renderSum(){
+  const M=UI.sum,ym=UI.ym,[y,m]=ym.split('-').map(Number),cf=r=>M.cat==='all'||r.cat===M.cat;
+  const catOpts='<option value="all">Tüm kategoriler</option>'+['gider','gelir'].map(t=>`<optgroup label="${t==='gider'?'Giderler':'Gelirler'}">${allCats().filter(c=>c.type===t).map(c=>`<option value="${c.id}" ${M.cat===c.id?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
+  const distType=M.cat!=='all'&&catOf(M.cat).type==='gelir'?'gelir':'gider';
+  let h=`<div class="card"><div class="seg"><button data-act="sum-mode" data-v="month" class="${M.mode==='month'?'on':''}">Aylık</button><button data-act="sum-mode" data-v="year" class="${M.mode==='year'?'on':''}">Yıllık</button></div><div class="fld" style="margin:.8rem 0 0"><select class="in" data-sum="cat" aria-label="Kategori filtresi">${catOpts}</select></div></div>`;
+  const stat=(l,v,x)=>`<div class="st"><small>${l}</small><b>${v}</b>${x?`<em>${x}</em>`:''}</div>`;
+  if(M.mode==='month'){
+    const rs=inMonth(ym).filter(cf),st=stats(rs),ps=stats(inMonth(addMonths(ym,-1)).filter(cf));
+    const dc=ym===nowYM()?new Date().getDate():daysIn(y,m),dd=pctDelta(st.exp,ps.exp);
+    h+=`<div class="sg">${stat('Gelir',fmtMoney(st.inc),'')}${stat('Gider',fmtMoney(st.exp),'')}${stat('Net',fmtMoney(st.net),'')}${stat('Ödenmemiş',fmtMoney(st.unpaidE),st.nUnpaid+' kayıt')}${stat('Günlük ort. gider',fmtMoney(st.exp/Math.max(1,dc)),'')}${stat('Geçen aya göre gider',dd==null?'—':(dd>0?'▲ %':'▼ %')+Math.abs(Math.round(dd)),dd==null?'karşılaştırma yok':'Geçen ay '+fmtMoney(ps.exp))}</div>`;
+    h+=sec('s-cat','Kategori dağılımı',distHtml(rs,distType),{icon:'🍩'});
+    const pr=st.exp?st.paidE/st.exp*100:0,paidN=rs.filter(r=>r.type==='gider'&&r.paid).length,unN=st.nUnpaid;
+    h+=sec('s-status','Ödeme durumu',`<div class="cb-bar" style="height:14px"><i style="width:${pr.toFixed(1)}%;background:var(--inc)"></i></div><div class="cap" style="border:0;margin-top:.6rem;padding:0"><span class="pos">Ödenen: ${paidN} · ${fmtMoney(st.paidE)}</span><span style="color:var(--warn)">Bekleyen: ${unN} · ${fmtMoney(st.unpaidE)}</span></div>`,{icon:'💳',badge:'%'+Math.round(pr)});
+    const tr=[];for(let i=5;i>=0;i--){const k=addMonths(ym,-i),s=stats(inMonth(k).filter(cf));tr.push({ym:k,inc:s.inc,exp:s.exp})}
+    h+=sec('s-trend','Son 6 ay karşılaştırma',barChart(tr,ym,'cap-s'),{icon:'📈'});
+    const top=rs.filter(r=>r.type==='gider').sort((a,b)=>b.amount-a.amount).slice(0,5);
+    h+=sec('s-top','En yüksek 5 gider',top.length?top.map(r=>rowHtml(r)).join(''):empty('📊','Bu dönemde gider yok.'),{icon:'🔝'});
+  }else{
+    const months=[];for(let i=1;i<=12;i++){const k=y+'-'+pad(i),s=stats(inMonth(k).filter(cf));months.push({ym:k,...s})}
+    const yr=S.records.filter(r=>r.date.startsWith(String(y))&&cf(r)),ys=stats(yr),active=months.filter(x=>x.exp>0).length;
+    const best=months.filter(x=>x.exp>0).sort((a,b)=>b.exp-a.exp)[0];
+    const cg={};yr.filter(r=>r.type==='gider').forEach(r=>cg[r.cat]=(cg[r.cat]||0)+r.amount);const topc=Object.entries(cg).sort((a,b)=>b[1]-a[1])[0];
+    h+=`<div class="sg">${stat('Yıllık gelir',fmtMoney(ys.inc),'')}${stat('Yıllık gider',fmtMoney(ys.exp),'')}${stat('Net',fmtMoney(ys.net),'')}${stat('Aylık ort. gider',fmtMoney(ys.exp/Math.max(1,active)),active+' aylık veri')}${stat('En yüksek ay',best?MONTHS[+best.ym.slice(5)-1]:'—',best?fmtMoney(best.exp):'')}${stat('En çok harcanan',topc?esc(catOf(topc[0]).icon+' '+catOf(topc[0]).name):'—',topc?fmtMoney(topc[1]):'')}</div>`;
+    h+=sec('s-trend',y+' aylık grafik',barChart(months.map(x=>({ym:x.ym,inc:x.inc,exp:x.exp})),ym,'cap-s'),{icon:'📈'});
+    h+=sec('s-cat','Kategori dağılımı',distHtml(yr,distType),{icon:'🍩'});
+    h+=sec('s-table','Aylık tablo',`<div class="tw"><table class="t"><tr><th>Ay</th><th>Gelir</th><th>Gider</th><th>Net</th></tr>${months.map(x=>`<tr><td>${MONTHS[+x.ym.slice(5)-1]}</td><td class="pos">${fmtMoney(x.inc)}</td><td class="neg">${fmtMoney(x.exp)}</td><td><b>${fmtMoney(x.net)}</b></td></tr>`).join('')}</table></div>`,{icon:'🗓️'});
+  }
+  h+=sec('s-arch','Arşiv (geçmiş aylar)',archiveHtml(),{icon:'📦',kw:'arşiv geçmiş aylar'});
+  return h}
+
+/* ================= AYARLAR ================= */
+const HUES=[['Mavi',217],['Turkuaz',178],['Yeşil',146],['Mor',262],['Pembe',334],['Turuncu',24]];
+function storageInfo(){const photos=S.records.filter(r=>r.photo).length;let bytes=0;try{bytes=JSON.stringify(S).length}catch(e){}
+  const mb=bytes/1048576;return{photos,size:mb<1?Math.max(1,Math.round(bytes/1024))+' KB':mb.toFixed(1)+' MB'}}
+function renderSet(){
+  const mode=(k,l)=>`<button data-act="set-mode" data-v="${k}" class="${P.mode===k?'on':''}">${l}</button>`,size=(k,l)=>`<button data-act="set-size" data-v="${k}" class="${P.size===k?'on':''}">${l}</button>`;
+  Object.keys(FONTS).forEach(loadFont);
+  const view=`<div class="set-lab">Tema modu</div><div class="seg">${mode('light','☀️ Açık')}${mode('dark','🌙 Koyu')}${mode('auto','📱 Otomatik')}</div>
+  <div class="set-lab" style="margin-top:1.1rem">Renk teması</div><div class="swatches">${HUES.map(([n,hh])=>`<button class="sw-c ${P.hue===hh?'on':''}" style="--hh:${hh}" data-act="set-hue" data-v="${hh}" aria-label="${n}" title="${n}"></button>`).join('')}</div>
+  <div class="set-lab" style="margin-top:1.1rem">Yazı stili</div><div class="fonts">${Object.entries(FONTS).map(([k,f])=>`<button class="fbtn ${P.font===k?'on':''}" style="font-family:${f.v.replace(/"/g,'&quot;')}" data-act="set-font" data-v="${k}"><b>Aa 123</b><small>${f.n}</small></button>`).join('')}</div>
+  <div class="set-lab" style="margin-top:1.1rem">Yazı boyutu</div><div class="seg">${size('s','Küçük')}${size('m','Orta')}${size('l','Büyük')}</div>`;
+  const tags=t=>allCats().filter(c=>c.type===t).map(c=>`<span class="tag">${c.icon} ${esc(c.name)}${DEF_CATS.includes(c)?'':`<button data-act="cat-del" data-id="${c.id}" aria-label="${esc(c.name)} kategorisini sil">✕</button>`}</span>`).join('');
+  const cats=`<div class="set-lab">Gider kategorileri</div><div class="tags">${tags('gider')}</div><div class="set-lab" style="margin-top:1rem">Gelir kategorileri</div><div class="tags">${tags('gelir')}</div>
+  <div class="set-lab" style="margin-top:1.2rem">Yeni kategori ekle</div><div class="fgrid"><div class="fld"><input id="nc_name" class="in" maxlength="24" placeholder="Ad (örn. Sigorta)"></div><div class="fld"><input id="nc_icon" class="in" maxlength="4" placeholder="Simge (🛡️)"></div>
+  <div class="fld"><select id="nc_type" class="in"><option value="gider">Gider</option><option value="gelir">Gelir</option></select></div><div class="fld"><select id="nc_group" class="in"><option value="diger">Grup: Diğer</option><option value="fatura">Grup: Fatura</option><option value="taksit">Grup: Taksit</option></select></div></div>
+  <button class="btn pri blk" data-act="cat-add">Kategori ekle</button>`;
+  const si=storageInfo();
+  const data=`<p class="mut" style="margin:0 0 .9rem">${S.records.length} kayıt · ${si.photos} fotoğraf · yaklaşık ${si.size}. Veriler yalnızca bu cihazda saklanır; düzenli olarak yedek almanız önerilir.</p>
+  <div class="setbtns"><button class="btn" data-act="exp-json">⬇️ JSON olarak dışa aktar (yedek)</button><button class="btn" data-act="imp-json">⬆️ JSON dosyasından içe aktar</button><button class="btn" data-act="exp-xlsx">📗 Excel (.xlsx) olarak dışa aktar</button><button class="btn dng" data-act="wipe">🗑️ Tüm verileri sil</button></div>`;
+  const about=`<div class="about"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="hsl(${P.hue} 78% 46%)"/><path d="M14 31 32 15l18 16v17a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2z" fill="#fff"/><rect x="27" y="36" width="10" height="14" rx="2" fill="hsl(${P.hue} 78% 46%)"/></svg>
+  <p><b style="font-size:1.15rem">Ev Gider Takip</b></p><p class="mut">Sürüm 1.0.0</p><p style="margin-top:.8rem">Oluşturan: <b>HAKAN KORKMAZ</b></p><p class="mut">Copyright © 2026 HAKAN KORKMAZ.<br>Tüm hakları saklıdır.</p>
+  <p class="mut" style="margin-top:.8rem">İpucu: Tarayıcı menüsünden “Ana ekrana ekle” diyerek uygulamayı telefonunuza kurabilirsiniz; internetsiz de çalışır.</p></div>`;
+  return`<div class="fld srch"><input id="setq" class="in" type="search" placeholder="Ayarlarda ara (tema, yazı, yedek, excel…)" autocomplete="off"></div>
+  <div class="listhead" style="margin-top:0"><span class="sumline">Başlığa dokunarak açın / kapatın</span><div class="acts"><button class="btn sm" data-act="expand-all">Tümünü aç</button><button class="btn sm" data-act="collapse-all">Kapat</button></div></div>
+  ${sec('st-view','Görünüm',view,{icon:'🎨',kw:'görünüm tema koyu mod açık renk yazı stili font boyut'})}
+  ${sec('st-cat','Kategoriler',cats,{icon:'🏷️',kw:'kategoriler ekle gider gelir'})}
+  ${sec('st-data','Veri yönetimi',data,{icon:'💾',kw:'veri yedek json excel xlsx içe dışa aktar sil'})}
+  ${sec('st-about','Hakkında',about,{icon:'ℹ️',kw:'hakkında hakan korkmaz copyright sürüm'})}`}
+
+/* ================= Ana çizim ================= */
+function render(keep=true){
+  const y=window.scrollY;renderTop();
+  $('#view').innerHTML=({home:renderHome,fat:renderFat,sum:renderSum,set:renderSet})[UI.tab]();
+  $$('#nav button').forEach(b=>{const on=b.dataset.tab===UI.tab;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false')});
+  $('#fab').hidden=UI.tab==='set';
+  if(UI.tab==='home'||UI.tab==='sum'){const c=$('.col.sel');if(c)setCap(UI.tab==='home'?'cap-h':'cap-s',c.dataset.ym,+c.dataset.inc,+c.dataset.exp)}
+  window.scrollTo(0,keep?y:0)}
+const go=t=>{UI.tab=t;render(false)};
+
+/* ================= Form ================= */
+function imgToDataURL(file,max=640,q=.7){return new Promise((res,rej)=>{const url=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{let w=im.naturalWidth,h=im.naturalHeight;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',q))};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};im.src=url})}
+function openForm(o={}){
+  const edit=o.id?S.records.find(r=>r.id===o.id):null;
+  let type=edit?edit.type:(o.cat?catOf(o.cat).type:(o.type||'gider')),photo=edit&&edit.photo||null;
+  const date=edit?edit.date:(UI.ym===nowYM()?todayStr():UI.ym+'-01');
+  const initCat=edit?edit.cat:(o.cat||(type==='gider'?'elektrik':'maas'));
+  const el=document.createElement('div');el.className='ov';
+  const catOpts=(t,sel)=>allCats().filter(c=>c.type===t).map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('');
+  el.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="${edit?'Kaydı düzenle':'Yeni kayıt'}"><div class="grab"></div>
+  <div class="sheet-h"><h2>${edit?'Kaydı düzenle':'Yeni kayıt'}</h2><button class="x" data-x="close" aria-label="Kapat">✕</button></div>
+  <div class="seg fld" id="f_type"><button type="button" data-t="gider" class="${type==='gider'?'on':''}">Gider</button><button type="button" data-t="gelir" class="${type==='gelir'?'on':''}">Gelir</button></div>
+  <div class="fld"><label for="f_cat">Kategori</label><select id="f_cat" class="in">${catOpts(type,initCat)}</select></div>
+  <div class="fld"><label for="f_title">Açıklama (isteğe bağlı)</label><input id="f_title" class="in" maxlength="60" placeholder="Örn. Ekim faturası" value="${esc(edit?edit.title:'')}"></div>
+  <div class="fgrid"><div class="fld"><label for="f_amount">Tutar (₺)</label><input id="f_amount" class="in" inputmode="decimal" placeholder="0,00" value="${edit?String(edit.amount).replace('.',','):''}"></div>
+  <div class="fld"><label for="f_date">Tarih / son ödeme</label><input id="f_date" class="in" type="date" value="${date}"></div></div>
+  <div class="fld"><label class="sw" style="color:var(--ink);font-size:1rem;margin:0"><span id="f_paidlab">${type==='gelir'?'Alındı':'Ödendi'}</span><input type="checkbox" id="f_paid" ${edit&&edit.paid?'checked':''}></label></div>
+  <div class="fld" id="f_paidAt_w" hidden><label for="f_paidAt">Ödeme tarihi</label><input id="f_paidAt" class="in" type="date" value="${edit&&edit.paidAt||todayStr()}"></div>
+  <div class="fld" id="f_meter_w" hidden><label for="f_endeks" id="f_endeks_l">Sayaç endeksi (isteğe bağlı)</label><input id="f_endeks" class="in" inputmode="decimal" placeholder="Örn. 1254,5" value="${edit&&edit.endeks!=null?String(edit.endeks).replace('.',','):''}"></div>
+  <div id="f_inst_w" hidden><div class="fgrid"><div class="fld"><label for="f_ik">Kaçıncı taksit</label><input id="f_ik" class="in" type="number" min="1" inputmode="numeric" value="${edit&&edit.inst?edit.inst.k:1}"></div><div class="fld"><label for="f_in">Toplam taksit</label><input id="f_in" class="in" type="number" min="1" max="360" inputmode="numeric" value="${edit&&edit.inst?edit.inst.n:12}"></div></div>
+  ${edit?'':`<div class="fld"><label class="sw" style="color:var(--ink);font-size:.95rem;margin:0"><span>Kalan taksitleri sonraki aylara ekle</span><input type="checkbox" id="f_gen" checked></label></div>`}</div>
+  <div class="fld"><label for="f_note">Not (isteğe bağlı)</label><textarea id="f_note" class="in" maxlength="300" placeholder="Abone no, açıklama…">${esc(edit?edit.note:'')}</textarea></div>
+  <div class="fld"><label>Fotoğraf (isteğe bağlı)</label><div class="photo-row"><div id="f_ph"></div><div><button type="button" class="btn sm" id="f_phbtn">📷 Fotoğraf ekle</button><input type="file" id="f_file" accept="image/*" hidden></div></div></div>
+  <div class="err" id="f_err" role="alert"></div>
+  <div class="acts"><button class="btn pri" style="flex:1" id="f_save">${edit?'Değişiklikleri kaydet':'Kaydet'}</button>${edit?'<button class="btn dng" id="f_del">Sil</button>':''}</div></div>`;
+  const q=s=>el.querySelector(s);
+  const close=()=>popOv(false);
+  const drawPh=()=>{q('#f_ph').innerHTML=photo?`<img class="thumb" src="${photo}" alt="Seçilen fotoğraf"><button type="button" class="ph-x" id="f_phx">Kaldır</button>`:'';const b=q('#f_phx');if(b)b.onclick=()=>{photo=null;drawPh()};q('#f_phbtn').textContent=photo?'📷 Değiştir':'📷 Fotoğraf ekle'};
+  const upd=()=>{const c=catOf(q('#f_cat').value);q('#f_meter_w').hidden=!c.meter;if(c.unit)q('#f_endeks_l').textContent='Sayaç endeksi ('+c.unit+', isteğe bağlı)';q('#f_inst_w').hidden=!(c.group==='taksit'&&type==='gider');q('#f_paidAt_w').hidden=!q('#f_paid').checked;q('#f_paidlab').textContent=type==='gelir'?'Alındı':'Ödendi'};
+  el.addEventListener('click',e=>{
+    if(e.target===el||e.target.closest('[data-x=close]'))return close();
+    const t=e.target.closest('#f_type button');
+    if(t){type=t.dataset.t;$$('#f_type button',el).forEach(b=>b.classList.toggle('on',b===t));q('#f_cat').innerHTML=catOpts(type,'');upd()}});
+  q('#f_cat').onchange=upd;q('#f_paid').onchange=upd;q('#f_phbtn').onclick=()=>q('#f_file').click();
+  q('#f_file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{photo=await imgToDataURL(f);drawPh()}catch(_){q('#f_err').textContent='Fotoğraf okunamadı. Başka bir görsel deneyin.'}e.target.value=''};
+  if(edit&&q('#f_del'))q('#f_del').onclick=async()=>{if(await delRec(edit.id))close()};
+  q('#f_save').onclick=()=>{
+    const err=m=>{q('#f_err').textContent=m};
+    const amount=parseAmount(q('#f_amount').value);if(!(amount>0))return err('Geçerli bir tutar girin. Ondalık için virgül kullanın (örn. 1250,50).');
+    const d=q('#f_date').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return err('Tarih seçin.');
+    const cid=q('#f_cat').value,c=catOf(cid),paid=q('#f_paid').checked;
+    let endeks=null;if(c.meter&&q('#f_endeks').value.trim()){endeks=parseAmount(q('#f_endeks').value);if(!isFinite(endeks)||endeks<0)return err('Sayaç endeksi geçerli bir sayı olmalı.')}
+    let inst=null;if(c.group==='taksit'&&type==='gider'){const k=parseInt(q('#f_ik').value,10),n=parseInt(q('#f_in').value,10);if(!(n>=1&&k>=1&&k<=n))return err('Taksit bilgisi hatalı: “kaçıncı” değeri toplamdan büyük olamaz.');inst={k,n,gid:edit&&edit.inst?edit.inst.gid:uid()}}
+    const paidAt=paid?(q('#f_paidAt').value||todayStr()):null;
+    const rec={id:edit?edit.id:uid(),type,cat:cid,title:q('#f_title').value.trim(),amount:round2(amount),date:d,paid,paidAt,note:q('#f_note').value.trim(),photo,endeks,inst};
+    let added=0;
+    if(edit){const i=S.records.findIndex(r=>r.id===edit.id);S.records[i]=rec}
+    else{S.records.push(rec);added=1;const gen=q('#f_gen');
+      if(inst&&gen&&gen.checked&&inst.k<inst.n){for(let i=1;i<=inst.n-inst.k;i++)S.records.push({id:uid(),type,cat:cid,title:rec.title,amount:rec.amount,date:shiftDate(d,i),paid:false,paidAt:null,note:rec.note,photo:null,endeks:null,inst:{k:inst.k+i,n:inst.n,gid:inst.gid}});added+=inst.n-inst.k}}
+    let msg=edit?'Kayıt güncellendi':(added>1?added+' taksit kaydı eklendi':'Kayıt eklendi');
+    if(ymOfDate(d)!==UI.ym){UI.ym=ymOfDate(d);msg+=' · '+monthName(UI.ym)}
+    save();close();render();toast(msg)};
+  pushOv(el);drawPh();upd();setTimeout(()=>{if(!edit)q('#f_amount').focus()},320)}
+const ymOfDate=d=>d.slice(0,7);
+
+/* ================= Eylemler ================= */
+function togglePaid(id){const r=S.records.find(x=>x.id===id);if(!r)return;r.paid=!r.paid;r.paidAt=r.paid?todayStr():null;save();render();toast(r.paid?(r.type==='gelir'?'Alındı olarak işaretlendi':'Ödendi olarak işaretlendi'):'Ödenmedi olarak işaretlendi')}
+async function delRec(id){
+  const r=S.records.find(x=>x.id===id);if(!r)return false;let scope='one';
+  const series=r.inst&&S.records.filter(x=>x.inst&&x.inst.gid===r.inst.gid);
+  if(series&&series.length>1){scope=await dialog({title:'Taksit kaydı silinsin mi?',body:'Bu kayıt bir taksit planının parçası.',buttons:[{label:'Sadece bu taksit',v:'one'},{label:'Bu ve sonraki taksitler',v:'next'},{label:'Tüm taksitler',v:'all',cls:'dng'},{label:'Vazgeç',v:null}]});if(!scope)return false}
+  else{const v=await dialog({title:'Kayıt silinsin mi?',body:`<b>${esc(r.title||catOf(r.cat).name)}</b> — ${fmtMoney(r.amount)}`,buttons:[{label:'Sil',v:'one',cls:'dng'},{label:'Vazgeç',v:null}]});if(!v)return false}
+  const rm=S.records.filter(x=>x.id===id||(scope==='next'&&x.inst&&x.inst.gid===r.inst.gid&&x.inst.k>=r.inst.k)||(scope==='all'&&x.inst&&x.inst.gid===r.inst.gid));
+  S.records=S.records.filter(x=>!rm.includes(x));rm.forEach(x=>UI.recOpen.delete(x.id));save();render();
+  toast(rm.length+' kayıt silindi',{label:'Geri al',fn:()=>{S.records.push(...rm);save();render()}});return true}
+function showPhoto(id){const r=S.records.find(x=>x.id===id);if(!r||!r.photo)return;const el=document.createElement('div');el.className='ov c photo-ov';el.innerHTML=`<img src="${r.photo}" alt="Fotoğraf">`;el.onclick=()=>popOv(false);pushOv(el)}
+function copyMonth(from,to){const src=inMonth(from).filter(r=>!r.inst),ex=inMonth(to),diff=monthDiff(from,to);let n=0;
+  for(const r of src){if(ex.some(x=>x.type===r.type&&x.cat===r.cat&&(x.title||'')===(r.title||'')))continue;
+    S.records.push({id:uid(),type:r.type,cat:r.cat,title:r.title,amount:r.amount,date:shiftDate(r.date,diff),paid:false,paidAt:null,note:r.note||'',photo:null,endeks:null,inst:null});n++}
+  return n}
+async function checkNewMonth(){
+  const cur=nowYM(),last=S.meta.lastMonth;
+  if(last&&last<cur&&S.records.length){
+    const prevs=[...new Set(S.records.map(r=>r.date.slice(0,7)))].filter(k=>k<cur).sort();const p=prevs[prevs.length-1];
+    if(p){const st=stats(inMonth(p));
+      const v=await dialog({title:'Yeni ay başladı 🗓️',body:`<b>${monthName(p)}</b> arşive alındı (Gelir ${fmtMoney(st.inc)} · Gider ${fmtMoney(st.exp)}).<br><b>${monthName(cur)}</b> istatistikleri sıfırdan başlıyor.<br><br>Düzenli kayıtları (taksitler zaten ekli) önceki aydan kopyalamak ister misiniz?`,buttons:[{label:'Önceki aydan kopyala',v:'copy',cls:'pri'},{label:'Boş başla',v:null}]});
+      if(v==='copy'){const n=copyMonth(p,cur);toast(n?n+' kayıt kopyalandı (ödenmedi olarak)':'Kopyalanacak yeni kayıt yok')}}
+  }
+  S.meta.lastMonth=cur;save();render()}
+
+/* ================= JSON ================= */
+function exportJSON(){const data={app:'ev-gider-takip',version:1,exportedAt:new Date().toISOString(),prefs:P,categories:S.cats,records:S.records};
+  download(new Blob([JSON.stringify(data)],{type:'application/json'}),'ev-gider-yedek-'+todayStr()+'.json');toast('Yedek dosyası indirildi')}
+const okId=s=>typeof s==='string'&&/^[\w-]{1,40}$/.test(s);
+function cleanCat(c){if(!c||typeof c!=='object'||typeof c.name!=='string'||!c.name.trim())return null;return{id:okId(c.id)?c.id:'c_'+uid(),name:c.name.trim().slice(0,24),icon:String(c.icon||'🏷️').slice(0,4),type:c.type==='gelir'?'gelir':'gider',group:c.type==='gelir'?'gelir':(['fatura','taksit','diger'].includes(c.group)?c.group:'diger')}}
+function cleanRec(r,catIds){if(!r||typeof r!=='object')return null;const amount=Number(r.amount);if(!isFinite(amount)||amount<=0||amount>1e12)return null;if(typeof r.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(r.date))return null;
+  const type=r.type==='gelir'?'gelir':'gider';let cat=typeof r.cat==='string'&&catIds.has(r.cat)?r.cat:(type==='gelir'?'diger-i':'diger-g');
+  const paid=!!r.paid,e=r.endeks==null||r.endeks===''?null:Number(r.endeks);let inst=null;
+  if(r.inst&&Number.isInteger(r.inst.k)&&Number.isInteger(r.inst.n)&&r.inst.k>=1&&r.inst.n>=r.inst.k)inst={k:r.inst.k,n:r.inst.n,gid:okId(r.inst.gid)?r.inst.gid:uid()};
+  return{id:okId(r.id)?r.id:uid(),type,cat,title:String(r.title||'').slice(0,60),amount:round2(amount),date:r.date,paid,paidAt:paid?(/^\d{4}-\d{2}-\d{2}$/.test(r.paidAt||'')?r.paidAt:r.date):null,note:String(r.note||'').slice(0,300),photo:typeof r.photo==='string'&&r.photo.startsWith('data:image/')?r.photo:null,endeks:e!=null&&isFinite(e)?e:null,inst}}
+async function importJSON(file){
+  let data;try{data=JSON.parse(await file.text())}catch(e){return toast('Dosya okunamadı: geçerli bir JSON değil.')}
+  if(!data||!Array.isArray(data.records))return toast('Bu dosya Ev Gider Takip yedeği gibi görünmüyor.');
+  const cats=(Array.isArray(data.categories)?data.categories:[]).map(cleanCat).filter(Boolean);
+  const ids=new Set(DEF_CATS.map(c=>c.id).concat(cats.map(c=>c.id)));
+  const recs=data.records.map(r=>cleanRec(r,ids)).filter(Boolean),skipped=data.records.length-recs.length;
+  if(!recs.length&&data.records.length)return toast('Dosyadaki kayıtlar geçersiz.');
+  const v=await dialog({title:'İçe aktarma',body:`Dosyada <b>${recs.length}</b> kayıt bulundu${skipped?` (${skipped} geçersiz kayıt atlanacak)`:''}.<br>Mevcut verileriniz: <b>${S.records.length}</b> kayıt.`,buttons:[{label:'Mevcut verilerle birleştir',v:'merge',cls:'pri'},{label:'Mevcut verilerin yerine koy',v:'replace',cls:'dng'},{label:'Vazgeç',v:null}]});
+  if(!v)return;
+  if(v==='replace'){S.records=recs;S.cats=cats}
+  else{const have=new Set(S.records.map(r=>r.id));let n=0;recs.forEach(r=>{if(!have.has(r.id)){S.records.push(r);n++}});const hc=new Set(S.cats.map(c=>c.id));cats.forEach(c=>{if(!hc.has(c.id))S.cats.push(c)})}
+  if(data.prefs&&typeof data.prefs==='object'&&v==='replace'){const p=data.prefs;if(['light','dark','auto'].includes(p.mode))P.mode=p.mode;if(HUES.some(h=>h[1]===p.hue))P.hue=p.hue;if(FONTS[p.font])P.font=p.font;if(['s','m','l'].includes(p.size))P.size=p.size;savePrefs();applyPrefs()}
+  save();render();toast('İçe aktarma tamamlandı')}
+
+/* ================= XLSX (bağımlılıksız) ================= */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zipStore(files){const enc=new TextEncoder(),parts=[],cd=[];let off=0;const d=new Date();
+  const dt=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(),tm=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1);
+  for(const f of files){const nb=enc.encode(f.name),data=typeof f.data==='string'?enc.encode(f.data):f.data,crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,0,true);lh.setUint16(10,tm,true);lh.setUint16(12,dt,true);lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,nb.length,true);lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer),nb,data);
+    const ch=new DataView(new ArrayBuffer(46));ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,0,true);ch.setUint16(12,tm,true);ch.setUint16(14,dt,true);ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);ch.setUint16(28,nb.length,true);ch.setUint32(42,off,true);
+    cd.push(new Uint8Array(ch.buffer),nb);off+=30+nb.length+data.length}
+  const cdSize=cd.reduce((s,x)=>s+x.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,cdSize,true);end.setUint32(16,off,true);
+  return new Blob([...parts,...cd,new Uint8Array(end.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+const xe=s=>String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const colName=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
+const XS={H:1,M:2,D:3,B:4,BM:5};
+const serial=s=>{const[y,m,d]=s.split('-').map(Number);return(Date.UTC(y,m-1,d)-Date.UTC(1899,11,30))/864e5};
+function sheetXml(sh){const rows=[sh.head.map(v=>({v,s:XS.H}))].concat(sh.rows);
+  const sd=rows.map((r,ri)=>`<row r="${ri+1}">${r.map((c,ci)=>{if(c==null||c==='')return'';let s=0,v=c;if(typeof c==='object'){s=c.s||0;v=c.v}const ref=colName(ci)+(ri+1);
+    if(typeof v==='number')return`<c r="${ref}"${s?` s="${s}"`:''}><v>${v}</v></c>`;return`<c r="${ref}" t="inlineStr"${s?` s="${s}"`:''}><is><t xml:space="preserve">${xe(v)}</t></is></c>`}).join('')}</row>`).join('');
+  return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${sh.w.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${sh.filter?`<autoFilter ref="A1:${colName(sh.head.length-1)}${rows.length}"/>`:''}</worksheet>`}
+const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.00&quot; ₺&quot;"/><numFmt numFmtId="165" formatCode="dd/mm/yyyy"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2F6FDE"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="2" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function buildXlsx(sheets){const n=sheets.length;
+  const files=[{name:'[Content_Types].xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`},
+  {name:'_rels/.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+  {name:'xl/workbook.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xe(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`},
+  {name:'xl/_rels/workbook.xml.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${n+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+  {name:'xl/styles.xml',data:STYLES}];
+  sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(s)}));
+  return zipStore(files)}
+async function exportXlsx(){
+  const y=UI.ym.slice(0,4);
+  const v=await dialog({title:'Excel’e aktar',body:'Hangi veriler dışa aktarılsın?',buttons:[{label:'Tüm veriler',v:'all',cls:'pri'},{label:'Sadece '+y+' yılı',v:'year'},{label:'Vazgeç',v:null}]});if(!v)return;
+  const recs=S.records.filter(r=>v==='all'||r.date.startsWith(y)).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!recs.length)return toast('Aktarılacak kayıt yok');
+  const money=n=>({v:n,s:XS.M});
+  const sh1={name:'Kayıtlar',head:['Tarih','Dönem','Tür','Kategori','Açıklama','Tutar','Durum','Ödeme Tarihi','Sayaç Endeksi','Tüketim','Taksit','Not','Fotoğraf'],w:[12,16,9,16,26,15,12,13,13,11,10,32,10],filter:1,
+    rows:recs.map(r=>{const c=catOf(r.cat),cs=consumption(r);return[{v:serial(r.date),s:XS.D},monthName(r.date.slice(0,7)),r.type==='gelir'?'Gelir':'Gider',c.name,r.title||'',money(r.amount),status(r).label,r.paidAt?{v:serial(r.paidAt),s:XS.D}:'',r.endeks!=null?r.endeks:'',cs!=null?cs:'',r.inst?r.inst.k+'/'+r.inst.n:'',r.note||'',r.photo?'Var':'']})};
+  const byM={};recs.forEach(r=>(byM[r.date.slice(0,7)]=byM[r.date.slice(0,7)]||[]).push(r));
+  const mk=Object.keys(byM).sort();let T={inc:0,exp:0,net:0,paidE:0,unpaidE:0,n:0};
+  const mrows=mk.map(k=>{const s=stats(byM[k]);for(const x in T)T[x]+=s[x];return[monthName(k),money(s.inc),money(s.exp),money(s.net),money(s.paidE),money(s.unpaidE),s.n]});
+  mrows.push([{v:'TOPLAM',s:XS.B},{v:T.inc,s:XS.BM},{v:T.exp,s:XS.BM},{v:T.net,s:XS.BM},{v:T.paidE,s:XS.BM},{v:T.unpaidE,s:XS.BM},{v:T.n,s:XS.B}]);
+  const sh2={name:'Aylık Özet',head:['Dönem','Gelir','Gider','Net','Ödenen Gider','Ödenmemiş Gider','Kayıt'],w:[18,16,16,16,16,18,9],rows:mrows};
+  const byC={};recs.forEach(r=>{const o=byC[r.cat]=byC[r.cat]||{tot:0,n:0,m:new Set()};o.tot+=r.amount;o.n++;o.m.add(r.date.slice(0,7))});
+  const crow=Object.entries(byC).map(([id,o])=>({c:catOf(id),o})).sort((a,b)=>(a.c.type===b.c.type?0:a.c.type==='gider'?-1:1)||b.o.tot-a.o.tot).map(x=>[x.c.name,x.c.type==='gelir'?'Gelir':'Gider',x.o.n,money(x.o.tot),money(x.o.tot/x.o.m.size)]);
+  const sh3={name:'Kategori Özeti',head:['Kategori','Tür','Kayıt','Toplam','Aylık Ortalama'],w:[20,10,9,17,17],rows:crow};
+  const byY={};recs.forEach(r=>(byY[r.date.slice(0,4)]=byY[r.date.slice(0,4)]||[]).push(r));
+  const sh4={name:'Yıllık Özet',head:['Yıl','Gelir','Gider','Net'],w:[10,17,17,17],rows:Object.keys(byY).sort().map(k=>{const s=stats(byY[k]);return[k,money(s.inc),money(s.exp),money(s.net)]})};
+  try{download(buildXlsx([sh1,sh2,sh3,sh4]),'ev-giderleri-'+(v==='year'?y:'tum-veriler')+'-'+todayStr()+'.xlsx');toast('Excel dosyası indirildi')}catch(e){toast('Excel dosyası oluşturulamadı')}}
+
+/* ================= Olaylar ================= */
+const H={
+  tab:el=>go(el.dataset.tab),
+  prev:()=>{UI.ym=addMonths(UI.ym,UI.tab==='sum'&&UI.sum.mode==='year'?-12:-1);render()},
+  next:()=>{UI.ym=addMonths(UI.ym,UI.tab==='sum'&&UI.sum.mode==='year'?12:1);render()},
+  toggle:el=>{const f=el.closest('.foldable'),open=f.classList.toggle('open'),k=el.dataset.key;el.setAttribute('aria-expanded',open);
+    if(el.dataset.kind==='sec'){UI.open[k]=open?1:0;saveOpen()}else if(el.dataset.kind==='rec'){open?UI.recOpen.add(k):UI.recOpen.delete(k)}else{open?UI.gOpen.add(k):UI.gOpen.delete(k)}},
+  add:el=>openForm({cat:el.dataset.cat}),
+  edit:el=>openForm({id:el.dataset.id}),
+  pay:el=>togglePaid(el.dataset.id),
+  del:el=>delRec(el.dataset.id),
+  photo:el=>showPhoto(el.dataset.id),
+  hgroup:el=>{UI.hgroup=el.dataset.v;render()},
+  'expand-all':()=>{if(UI.tab==='fat'){updateFatListAll(true)}else{$$('.sec').forEach(s=>{s.classList.add('open');const b=s.querySelector('.sec-h');b.setAttribute('aria-expanded','true');UI.open[b.dataset.key]=1});saveOpen()}},
+  'collapse-all':()=>{if(UI.tab==='fat'){updateFatListAll(false)}else{$$('.sec').forEach(s=>{s.classList.remove('open');const b=s.querySelector('.sec-h');b.setAttribute('aria-expanded','false');UI.open[b.dataset.key]=0});saveOpen()}},
+  more:()=>{UI.f.limit+=60;updateFatList()},
+  'reset-f':()=>{UI.f={...UI.f,scope:'month',type:'all',cat:'all',status:'all',sort:'dateDesc',limit:60};render()},
+  'chart-sel':el=>{$$('.col.sel',el.parentNode).forEach(c=>c.classList.remove('sel'));el.classList.add('sel');setCap(UI.tab==='home'?'cap-h':'cap-s',el.dataset.ym,+el.dataset.inc,+el.dataset.exp)},
+  'sum-mode':el=>{UI.sum.mode=el.dataset.v;render()},
+  'open-month':el=>{UI.ym=el.dataset.ym;UI.f={...UI.f,scope:'month',status:'all',type:'all',cat:'all',q:'',limit:60};go('fat')},
+  'show-overdue':()=>{UI.f={...UI.f,scope:'all',status:'overdue',type:'gider',cat:'all',q:'',limit:60,sort:'dateAsc'};UI.open['f-filter']=1;go('fat')},
+  copyprev:async()=>{const from=addMonths(UI.ym,-1);if(!inMonth(from).filter(r=>!r.inst).length)return toast(monthName(from)+' ayında kopyalanacak kayıt yok');
+    const v=await dialog({title:'Önceki aydan kopyala',body:`<b>${monthName(from)}</b> kayıtları (taksitler hariç) <b>${monthName(UI.ym)}</b> ayına <b>ödenmedi</b> olarak kopyalanacak. Aynı kayıt zaten varsa atlanır.`,buttons:[{label:'Kopyala',v:1,cls:'pri'},{label:'Vazgeç',v:null}]});
+    if(!v)return;const n=copyMonth(from,UI.ym);save();render();toast(n?n+' kayıt kopyalandı':'Kopyalanacak yeni kayıt yok')},
+  'set-mode':el=>{P.mode=el.dataset.v;savePrefs();applyPrefs();render()},
+  'set-hue':el=>{P.hue=+el.dataset.v;savePrefs();applyPrefs();render()},
+  'set-font':el=>{P.font=el.dataset.v;savePrefs();applyPrefs();render()},
+  'set-size':el=>{P.size=el.dataset.v;savePrefs();applyPrefs();render()},
+  'cat-add':()=>{const name=$('#nc_name').value.trim();if(!name)return toast('Kategori adı girin');
+    const type=$('#nc_type').value,group=type==='gelir'?'gelir':$('#nc_group').value;
+    if(allCats().some(c=>c.type===type&&c.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr')))return toast('Bu isimde kategori zaten var');
+    S.cats.push({id:'c_'+uid(),name:name.slice(0,24),icon:($('#nc_icon').value.trim()||'🏷️').slice(0,4),type,group});save();render();toast('Kategori eklendi')},
+  'cat-del':el=>{const id=el.dataset.id;if(S.records.some(r=>r.cat===id))return toast('Bu kategoride kayıt var; önce kayıtları silin veya değiştirin');
+    S.cats=S.cats.filter(c=>c.id!==id);save();render();toast('Kategori silindi')},
+  'exp-json':exportJSON,
+  'imp-json':()=>$('#impfile').click(),
+  'exp-xlsx':exportXlsx,
+  wipe:async()=>{const v=await dialog({title:'Tüm veriler silinsin mi?',body:'Tüm kayıtlar ve özel kategoriler kalıcı olarak silinir. Önce JSON yedeği almanızı öneririz.',buttons:[{label:'Önce yedek al',v:'bk'},{label:'Evet, hepsini sil',v:'del',cls:'dng'},{label:'Vazgeç',v:null}]});
+    if(v==='bk')return exportJSON();if(v!=='del')return;S.records=[];S.cats=[];UI.recOpen.clear();save();render();toast('Tüm veriler silindi')}
+};
+function updateFatListAll(open){const list=filtered().slice(0,UI.f.limit);list.forEach(r=>open?UI.recOpen.add(r.id):UI.recOpen.delete(r.id));updateFatList()}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;const h=H[el.dataset.act];if(h)h(el,e)});
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button][data-act]')){e.preventDefault();e.target.click()}});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='pm'){UI.ym=UI.ym.slice(0,4)+'-'+t.value;render()}
+  else if(t.id==='py'){UI.ym=t.value+'-'+UI.ym.slice(5);render()}
+  else if(t.dataset.f){UI.f[t.dataset.f]=t.value;UI.f.limit=60;render()}
+  else if(t.dataset.sum==='cat'){UI.sum.cat=t.value;render()}
+  else if(t.dataset.sum==='arch'){UI.archYear=t.value;render()}
+  else if(t.id==='impfile'){const f=t.files[0];t.value='';if(f)importJSON(f)}});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='fq'){UI.f.q=t.value;UI.f.limit=60;updateFatList()}
+  else if(t.id==='setq'){const q=t.value.trim().toLocaleLowerCase('tr');$$('#view .sec').forEach(s=>{const hit=!q||s.dataset.kw.includes(q);s.hidden=!hit;if(q&&hit)s.classList.add('open')})}});
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(P.mode==='auto')applyPrefs()})}catch(e){}
+window.addEventListener('error',()=>toast('Beklenmeyen bir hata oluştu. Sayfayı yenileyin.'));
+
+/* ================= Başlat ================= */
+(async function init(){
+  await loadState();
+  render();
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+  await checkNewMonth();
+  if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+})();
+})();
+</script>
+</body>
+</html>
