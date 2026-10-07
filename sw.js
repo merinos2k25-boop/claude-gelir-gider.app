@@ -1,5 +1,5 @@
 /* Ev Gider Takip - servis çalışanı (çevrimdışı kullanım) */
-const CACHE = 'egt-v1.0.0';
+const CACHE = 'egt-v1.1.0';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/favicon.svg'];
 
 self.addEventListener('install', e => {

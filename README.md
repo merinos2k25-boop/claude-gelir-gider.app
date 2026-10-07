@@ -27,5 +27,6 @@ vercel --prod
 ## Notlar
 - Veriler yalnızca kullanıcının cihazında (IndexedDB) saklanır; sunucuya gönderilmez. Ayarlar > Veri yönetimi'nden düzenli JSON yedeği alın.
 - Fotoğraflar kaydedilirken otomatik küçültülür (en fazla 640 px).
+- Eski "transactions" biçimindeki yedekler içe aktarılırken otomatik dönüştürülür.
 - Yazı stilleri Google Fonts'tan seçildiğinde yüklenir; internet yoksa sistem yazı tipine döner.
 - Güncelleme yayınlarken `sw.js` içindeki `CACHE` sürümünü artırmanız önerilir.
